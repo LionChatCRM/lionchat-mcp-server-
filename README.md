@@ -183,6 +183,45 @@ Depois de conectar, basta pedir em linguagem natural:
 → lionchat_voip_calls_balance
 ```
 
+### No n8n
+
+O n8n suporta MCP de duas formas:
+
+#### Opcao 1: MCP Client + AI Agent (recomendado para decisoes inteligentes)
+
+1. Adicione um node **"AI Agent"** ao seu workflow (Claude, GPT, ou outro LLM)
+2. Adicione um node **"MCP Client"** como ferramenta do agente
+3. Configure o MCP Client:
+   - **Transport:** stdio
+   - **Command:** `npx`
+   - **Arguments:** `@lionchat/mcp-server`
+   - **Environment Variables:**
+     - `LIONCHAT_API_TOKEN` = seu token
+     - `LIONCHAT_ACCOUNT_ID` = seu account ID
+     - `LIONCHAT_CATEGORIES` = categorias desejadas (opcional)
+4. Conecte o MCP Client ao AI Agent
+5. O agente de IA decide automaticamente quais ferramentas usar
+
+**Exemplo de prompt no AI Agent:**
+> "Analise os contatos criados ontem. Se algum tem empresa no nome, crie um card no funil 'Vendas B2B' na etapa 'Prospeccao'."
+
+O agente vai chamar `lionchat_contacts_list`, analisar os resultados, e chamar `lionchat_kanban_items_create` para cada contato relevante.
+
+#### Opcao 2: HTTP Request (para automacoes fixas)
+
+Para automacoes tipo "se X entao Y" sem necessidade de IA, use o node **HTTP Request** do n8n chamando a API do LionChat diretamente:
+
+- **URL:** `https://app.lionchat.com.br/api/v1/accounts/{account_id}/contacts`
+- **Header:** `api_access_token: seu_token`
+- **Method:** GET, POST, etc.
+
+#### Quando usar cada opcao
+
+| Abordagem | Quando usar |
+|-----------|-------------|
+| **MCP + AI Agent** | O fluxo precisa de decisao inteligente ("analise e decida") |
+| **HTTP Request** | Automacao fixa ("quando receber webhook, criar contato") |
+
 ### Em scripts ou agentes customizados
 
 O MCP server funciona com qualquer cliente MCP via transporte stdio. Execute como subprocesso e comunique via stdin/stdout (JSON-RPC).
