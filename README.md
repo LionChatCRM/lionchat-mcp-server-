@@ -154,34 +154,162 @@ npx @lionchat/mcp-server --categories=contacts,conversations,kanban_items
 
 ---
 
-## Exemplos de Uso
+## O que o MCP pode fazer por voce
 
-### No Claude Code
+O MCP transforma o LionChat em uma plataforma controlavel por IA. Em vez de clicar em menus e preencher formularios, voce fala o que precisa e o agente faz.
 
-Depois de conectar, basta pedir em linguagem natural:
+### Gestao de Contatos e CRM
 
 ```
-"Liste meus ultimos 10 contatos"
-→ lionchat_contacts_list
+"Importa esses 50 leads que recebi hoje e adiciona a label 'Evento Marco 2026' em todos"
 
-"Crie um funil chamado 'Vendas Q2' com etapas Prospeccao, Qualificacao, Proposta, Fechado"
-→ lionchat_funnels_create
+"Busca todos os contatos que tem 'advogado' no campo profissao e cria um segmento"
 
-"Mova o card 42 para a etapa 'Proposta'"
-→ lionchat_kanban_items_move_to_stage
+"Mescla o contato duplicado do Joao — o ID 45 e o ID 128 sao a mesma pessoa"
 
-"Envie 'Ola!' na conversa 15"
-→ lionchat_conversations_messages_create
+"Quais contatos novos entraram essa semana? Me da um resumo por canal de origem"
+```
 
-"Quais conversas estao abertas no time de suporte?"
-→ lionchat_conversations_list (com filtro por time)
+### Kanban e Funil de Vendas
 
-"Crie uma regra de automacao: quando criar conversa com label VIP, atribuir ao time Premium"
-→ lionchat_automation_rules_create
+```
+"Cria um funil chamado 'Lancamento Produto X' com as etapas:
+ Interesse, Qualificacao, Proposta Enviada, Negociacao, Fechado Ganho, Perdido"
 
+"Pega todos os cards que estao na etapa 'Qualificacao' ha mais de 7 dias e move pra 'Perdido'"
+
+"Cria um card no funil de Vendas pra cada contato que tem a label 'Lead Quente'"
+
+"Qual o valor total dos cards na etapa 'Proposta Enviada'? E quantos tem?"
+
+"Atribui o agente Maria a todos os cards do funil 'Suporte Tecnico'"
+```
+
+### Conversas e Atendimento
+
+```
+"Quantas conversas abertas eu tenho agora? Separa por time"
+
+"Pega as 10 conversas mais antigas sem resposta e atribui ao time de Suporte"
+
+"Envia 'Ola! Como posso ajudar?' na conversa 234"
+
+"Fecha todas as conversas resolvidas que estao paradas ha mais de 48 horas"
+
+"Agenda uma mensagem pra amanha as 9h na conversa 56: 'Bom dia! Tudo bem com o orcamento?'"
+```
+
+### Automacoes e Regras
+
+```
+"Cria uma automacao: quando uma conversa receber a label 'Urgente',
+ atribuir ao time Premium e enviar notificacao"
+
+"Lista todas as minhas regras de automacao ativas"
+
+"Duplica a automacao 'Boas-vindas VIP' e muda o time de destino pra 'Vendas B2B'"
+```
+
+### Agenda e Tarefas
+
+```
+"Cria uma tarefa pra ligar pro Joao amanha as 14h"
+
+"Quais tarefas estao pendentes pra hoje?"
+
+"Cancela todas as tarefas de follow-up da semana passada que nao foram feitas"
+
+"Agenda uma reuniao com o contato 45 pra quinta-feira as 10h"
+```
+
+### Mensagens e Templates WhatsApp
+
+```
+"Lista os templates WhatsApp aprovados"
+
+"Agenda o envio do template 'Lembrete Pagamento' pra todos os contatos com label 'Inadimplente'"
+
+"Envia uma imagem do produto novo na conversa 89 com a legenda 'Confira nossa novidade!'"
+```
+
+### Relatorios e Metricas
+
+```
+"Qual foi o tempo medio de primeira resposta essa semana?"
+
+"Me da o relatorio de desempenho dos agentes do mes passado"
+
+"Quantas conversas cada inbox recebeu nos ultimos 30 dias?"
+
+"Qual a nota media do CSAT esse mes? Compara com o mes anterior"
+
+"Quais agentes estao online agora e quantas conversas cada um tem?"
+```
+
+### Grupos WhatsApp
+
+```
+"Lista todos os grupos WhatsApp da inbox 5"
+
+"Adiciona o numero 5511999887766 no grupo 'Clientes Premium'"
+
+"Qual o link de convite do grupo 'Suporte Tecnico'?"
+
+"Remove o participante 5511888776655 do grupo 'Equipe Interna'"
+```
+
+### IA e Assistentes
+
+```
+"Lista meus assistentes de IA configurados"
+
+"Pede pro assistente 'Vendas' sugerir uma resposta pra conversa 123"
+
+"Resume a conversa 456 em 3 pontos principais"
+
+"Adiciona a URL https://empresa.com/faq na base de conhecimento do assistente"
+```
+
+### VoIP e Ligacoes
+
+```
 "Qual o saldo do meu VoIP?"
-→ lionchat_voip_calls_balance
+
+"Lista as ultimas 20 ligacoes recebidas"
+
+"Transcreve a ligacao 78 e me da o resumo"
+
+"Analisa a ligacao 92 — o cliente ficou satisfeito?"
 ```
+
+### Operacoes em Massa
+
+```
+"Pega todos os contatos com label 'Inativo' e remove a label"
+
+"Move todos os cards do agente Pedro pro agente Ana (ele saiu de ferias)"
+
+"Adiciona a label 'Black Friday' em todos os contatos que compraram em novembro"
+
+"Exporta todos os cards do funil 'Vendas Q1' pra eu analisar"
+```
+
+---
+
+### Exemplos rapidos (comando e ferramenta usada)
+
+| Voce diz | Ferramenta chamada |
+|----------|-------------------|
+| "Liste meus contatos" | `lionchat_contacts_list` |
+| "Crie um funil com 4 etapas" | `lionchat_funnels_create` |
+| "Mova o card 42 pra Proposta" | `lionchat_kanban_items_move_to_stage` |
+| "Envie mensagem na conversa 15" | `lionchat_conversations_messages_create` |
+| "Conversas abertas por time" | `lionchat_conversations_list` |
+| "Crie regra de automacao" | `lionchat_automation_rules_create` |
+| "Saldo do VoIP" | `lionchat_voip_calls_balance` |
+| "Templates WhatsApp" | `lionchat_whatsapp_templates_list` |
+| "Relatorio de agentes" | `lionchat_reports_agents` |
+| "Grupos do WhatsApp" | `lionchat_waha_groups_list` |
 
 ### No n8n
 
