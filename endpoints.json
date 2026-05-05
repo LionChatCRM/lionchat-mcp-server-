@@ -11507,8 +11507,8 @@
         "name": "description",
         "type": "string",
         "location": "body",
-        "required": true,
-        "description": "Descricao quando o cenario aplica"
+        "required": false,
+        "description": "Descricao quando o cenario aplica (opcional em update — obrigatorio so no create)"
       },
       {
         "name": "instruction",

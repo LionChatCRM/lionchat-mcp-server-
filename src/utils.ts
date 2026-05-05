@@ -98,7 +98,17 @@ export function separateParams(
   const assignBody = (name: string, value: unknown): void => {
     const dotIdx = name.indexOf('.');
     if (dotIdx <= 0) {
-      bodyParams[name] = value;
+      // AIDEV-NOTE: Merge plain objects to avoid clobbering when caller mixes
+      // `config: {...}` and `config.X` in the same input (P0 fix 2026-05-05).
+      const existingTop = bodyParams[name];
+      if (
+        value && typeof value === 'object' && !Array.isArray(value) &&
+        existingTop && typeof existingTop === 'object' && !Array.isArray(existingTop)
+      ) {
+        bodyParams[name] = { ...(existingTop as Record<string, unknown>), ...(value as Record<string, unknown>) };
+      } else {
+        bodyParams[name] = value;
+      }
       return;
     }
     const root = name.slice(0, dotIdx);
