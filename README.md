@@ -69,6 +69,19 @@ npx @lionchat/mcp-server
 
 ---
 
+## Trabalhando com multiplas contas
+
+Toda ferramenta aceita um parametro opcional `account_id` que **sobrepoe** a variavel `LIONCHAT_ACCOUNT_ID` da sessao atual. Util para agentes que precisam consultar/operar em mais de uma conta sem reiniciar o MCP.
+
+```
+"Lista contatos da conta padrao": lionchat_contacts_list
+"Lista contatos da conta 42":     lionchat_contacts_list(account_id="42")
+```
+
+Se `account_id` nao for informado, o MCP usa o valor de `LIONCHAT_ACCOUNT_ID` (ou `--account=`). O token (`LIONCHAT_API_TOKEN`) precisa ter acesso a todas as contas que voce quer chamar.
+
+---
+
 ## Filtro por Categoria
 
 Para melhor performance do agente, carregue apenas as ferramentas que precisa:
