@@ -76,6 +76,7 @@ export function formatResponse(data: unknown): string {
 }
 
 // AIDEV-NOTE: Route each input param to path/query/body based on endpoint parameter definitions
+// Supports nested body params via dot-notation: `config.temperature` becomes body.config.temperature
 export function separateParams(
   input: Record<string, unknown>,
   paramDefs: Array<{ name: string; location: string }>
@@ -90,7 +91,67 @@ export function separateParams(
     locationMap.set(def.name, def.location);
   }
 
+  // AIDEV-NOTE: Helper that places a value into bodyParams, expanding dot-notation
+  // names into nested objects. Example: `config.temperature` => body.config.temperature
+  // Rationale: Rails strong_params expect nested objects (e.g. assistant: { config: {...} })
+  // not flat keys with dots. Without this expansion the backend silently drops the field.
+  const assignBody = (name: string, value: unknown): void => {
+    const dotIdx = name.indexOf('.');
+    if (dotIdx <= 0) {
+      bodyParams[name] = value;
+      return;
+    }
+    const root = name.slice(0, dotIdx);
+    const leaf = name.slice(dotIdx + 1);
+    const existing = bodyParams[root];
+    const target =
+      existing && typeof existing === 'object' && !Array.isArray(existing)
+        ? (existing as Record<string, unknown>)
+        : {};
+    // AIDEV-NOTE: Recurse to support multi-level dot-notation (a.b.c)
+    const nested: Record<string, unknown> = target;
+    const innerDot = leaf.indexOf('.');
+    if (innerDot <= 0) {
+      nested[leaf] = value;
+    } else {
+      // AIDEV-NOTE: Build deeper nesting by reusing assignBody logic on a temp container
+      const subPath = leaf;
+      const subRoot = subPath.slice(0, innerDot);
+      const subRest = subPath.slice(innerDot + 1);
+      const subExisting = nested[subRoot];
+      const subTarget =
+        subExisting && typeof subExisting === 'object' && !Array.isArray(subExisting)
+          ? (subExisting as Record<string, unknown>)
+          : {};
+      // Iteratively walk the rest of the path
+      let cursor: Record<string, unknown> = subTarget;
+      let remaining = subRest;
+      while (true) {
+        const idx = remaining.indexOf('.');
+        if (idx <= 0) {
+          cursor[remaining] = value;
+          break;
+        }
+        const head = remaining.slice(0, idx);
+        const tail = remaining.slice(idx + 1);
+        const next = cursor[head];
+        const nextObj =
+          next && typeof next === 'object' && !Array.isArray(next)
+            ? (next as Record<string, unknown>)
+            : {};
+        cursor[head] = nextObj;
+        cursor = nextObj;
+        remaining = tail;
+      }
+      nested[subRoot] = subTarget;
+    }
+    bodyParams[root] = target;
+  };
+
   for (const [key, value] of Object.entries(input)) {
+    if (value === undefined) {
+      continue;
+    }
     const location = locationMap.get(key);
 
     switch (location) {
@@ -98,16 +159,17 @@ export function separateParams(
         pathParams[key] = value;
         break;
       case 'query':
-        if (value !== null && value !== undefined) {
+        if (value !== null) {
           queryParams[key] = String(value);
         }
         break;
       case 'body':
-        bodyParams[key] = value;
+        assignBody(key, value);
         break;
       default:
         // AIDEV-NOTE: Params not in definitions go to body (catch-all for nested/extra fields)
-        bodyParams[key] = value;
+        // Honor dot-notation here too in case a caller forwards an undeclared nested field
+        assignBody(key, value);
         break;
     }
   }
