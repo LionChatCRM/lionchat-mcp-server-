@@ -1,6 +1,8 @@
 # @lionchat/mcp-server
 
-MCP server que conecta agentes de IA a plataforma LionChat. Expoe mais de 540 ferramentas para gerenciar contatos, conversas, kanban, funis, mensagens, automacoes e muito mais.
+MCP server que conecta agentes de IA a plataforma LionChat. Expoe mais de 547 ferramentas para gerenciar contatos, conversas, kanban, funis, mensagens, automacoes e muito mais.
+
+> **v0.2.0** — Multi-conta via `account_id` opcional, 18 campos novos no AI Agente (Captain), playground e tools list, FAQs com assistant_id, reports com filtros completos. Veja `CHANGELOG.md`.
 
 ## O que e MCP?
 
@@ -97,7 +99,7 @@ npx @lionchat/mcp-server --categories=contacts,conversations,kanban_items
 | **Vendas** | `contacts,conversations,messages,kanban_items,funnels,offers` | CRM e automacao de vendas |
 | **Suporte** | `contacts,conversations,messages,canned_responses,teams,labels` | Atendimento ao cliente |
 | **Marketing** | `contacts,automation_rules,labels,scheduled_messages` | Campanhas e automacao |
-| **Completo** | _(sem filtro)_ | Cobertura total da API (541 ferramentas) |
+| **Completo** | _(sem filtro)_ | Cobertura total da API (547 ferramentas) |
 
 ### Categorias Disponiveis
 
@@ -281,7 +283,46 @@ O MCP transforma o LionChat em uma plataforma controlavel por IA. Em vez de clic
 "Resume a conversa 456 em 3 pontos principais"
 
 "Adiciona a URL https://empresa.com/faq na base de conhecimento do assistente"
+
+"Cria um AI Agente 'Closer' com modelo gpt-4o, temperatura 0.4,
+ ativa FAQ e citation, follow-up depois de 30 minutos"
 ```
+
+#### Criar/Atualizar AI Agente — campos disponiveis (v0.2.0)
+
+`lionchat_captain_assistants_create` e `_update` agora suportam dot-notation para campos aninhados em `config`. Exemplos:
+
+```json
+{
+  "name": "Closer Black Friday",
+  "description": "Agente de fechamento de vendas",
+  "response_guidelines": ["Seja direto", "Use prova social"],
+  "guardrails": ["Nao prometa desconto sem aprovacao"],
+  "config.model": "gpt-4o",
+  "config.temperature": 0.4,
+  "config.instructions": "Voce e um closer especialista...",
+  "config.feature_faq": true,
+  "config.feature_memory": true,
+  "config.feature_citation": true,
+  "config.welcome_message": "Oi! Vi que voce tem interesse...",
+  "config.min_response_time": 5,
+  "config.max_response_time": 15,
+  "config.feature_follow_up": true,
+  "config.follow_up_time": 30,
+  "config.follow_up_prompt": "Pergunte se ainda tem duvida.",
+  "config.disabled_tools": ["create_kanban_item"],
+  "config.offer_ids": [12, 17],
+  "config.media_asset_ids": [3],
+  "config.booking_event_type_ids": [5]
+}
+```
+
+Tambem novos:
+
+| Ferramenta | Para que serve |
+|------------|---------------|
+| `lionchat_captain_assistants_tools` | Lista tools nativas/custom (com flag enabled/disabled por agente) |
+| `lionchat_captain_assistants_playground` | Testa o agente sem criar conversa real |
 
 ### VoIP e Ligacoes
 
