@@ -180,18 +180,40 @@ function paramTypeToZod(param: EndpointParam): ZodTypeAny {
   return schema;
 }
 
-// AIDEV-NOTE: Build Zod object schema from endpoint params, skipping account_id (auto-injected)
+// AIDEV-NOTE: Build Zod object schema from endpoint params.
+// account_id is exposed as OPTIONAL — when omitted we fall back to LIONCHAT_ACCOUNT_ID.
+// This enables multi-tenant usage (single MCP instance can hit several accounts).
 function buildZodSchema(
   params: EndpointParam[]
 ): z.ZodObject<Record<string, ZodTypeAny>> {
   const shape: Record<string, ZodTypeAny> = {};
+  let hasAccountIdInPath = false;
 
   for (const param of params) {
-    // AIDEV-NOTE: account_id is auto-injected from config, never exposed to MCP client
     if (param.name === 'account_id') {
+      hasAccountIdInPath = true;
+      // AIDEV-NOTE: Force account_id optional regardless of how it was declared upstream.
+      // Tool handler resolves the effective value (input || config.accountId).
+      shape[param.name] = z
+        .string()
+        .optional()
+        .describe(
+          'ID da conta. Opcional — se ausente, usa LIONCHAT_ACCOUNT_ID. Informe para chamar uma conta diferente sem reiniciar o MCP.'
+        );
       continue;
     }
     shape[param.name] = paramTypeToZod(param);
+  }
+
+  // AIDEV-NOTE: Some endpoints embed {account_id} in the path but do NOT declare it as a param.
+  // Expose it as optional so callers can override the env even on those tools.
+  if (!hasAccountIdInPath) {
+    shape['account_id'] = z
+      .string()
+      .optional()
+      .describe(
+        'ID da conta. Opcional — se ausente, usa LIONCHAT_ACCOUNT_ID. Informe para chamar uma conta diferente sem reiniciar o MCP.'
+      );
   }
 
   return z.object(shape);
@@ -246,14 +268,25 @@ function registerSingleTool(
           }
         }
 
+        // AIDEV-NOTE: Multi-tenant — input account_id (if provided) overrides env LIONCHAT_ACCOUNT_ID.
+        // Resolve and strip account_id BEFORE bucketing so it never lands in body/query for
+        // endpoints that don't declare it as an explicit param.
+        const rawAccountId = params['account_id'];
+        const effectiveAccountId =
+          rawAccountId !== undefined && rawAccountId !== null && String(rawAccountId).length > 0
+            ? String(rawAccountId)
+            : config.accountId;
+        const paramsWithoutAccount: Record<string, unknown> = { ...params };
+        delete paramsWithoutAccount['account_id'];
+
         const { pathParams, queryParams, bodyParams } = separateParams(
-          params,
+          paramsWithoutAccount,
           endpoint.params
         );
 
         const path = substitutePath(
           endpoint.path,
-          config.accountId,
+          effectiveAccountId,
           pathParams
         );
         const queryStr = buildQueryString(queryParams);

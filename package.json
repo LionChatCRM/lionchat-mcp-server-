@@ -1,7 +1,7 @@
 {
   "name": "@lionchat/mcp-server",
-  "version": "0.1.1",
-  "description": "MCP server for LionChat API — 545 tools for AI agents",
+  "version": "0.2.0",
+  "description": "MCP server for LionChat API — 547 tools for AI agents",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
@@ -14,7 +14,7 @@
     "dev": "tsc --watch",
     "extract": "npx tsx scripts/extract-endpoints.ts"
   },
-  "files": ["dist", "endpoints.json", "README.md"],
+  "files": ["dist", "endpoints.json", "README.md", "CHANGELOG.md"],
   "keywords": ["mcp", "lionchat", "chatwoot", "whatsapp", "crm", "ai-agent", "kanban"],
   "license": "MIT",
   "engines": {
