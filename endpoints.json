@@ -6414,37 +6414,30 @@
     "method": "POST",
     "path": "/api/v1/accounts/{account_id}/captain/assistants",
     "title": "Criar Assistente IA",
-    "description": "Cria um novo assistente de IA (Captain). **Requer perfil Administrador.**",
+    "description": "Cria novo AI Agente. Body deve ter pelo menos `name` e `description`. `config.model` e auto-preenchido se ausente. **Requer perfil Administrador.**",
     "category": "Assistentes",
     "params": [
-      {
-        "name": "name",
-        "type": "string",
-        "location": "body",
-        "required": true,
-        "description": "Nome"
-      },
-      {
-        "name": "description",
-        "type": "string",
-        "location": "body",
-        "required": false,
-        "description": "Descrição"
-      },
-      {
-        "name": "model",
-        "type": "string",
-        "location": "body",
-        "required": false,
-        "description": "Modelo LLM"
-      },
-      {
-        "name": "system_prompt",
-        "type": "string",
-        "location": "body",
-        "required": false,
-        "description": "Prompt do sistema"
-      }
+      { "name": "name", "type": "string", "location": "body", "required": true, "description": "Nome do agente" },
+      { "name": "description", "type": "string", "location": "body", "required": true, "description": "Descricao curta — obrigatoria pelo backend (validates :description, presence: true)" },
+      { "name": "response_guidelines", "type": "array", "location": "body", "required": false, "description": "Array de strings com diretrizes de resposta" },
+      { "name": "guardrails", "type": "array", "location": "body", "required": false, "description": "Array de strings com guardrails (proibicoes)" },
+      { "name": "config.model", "type": "string", "location": "body", "required": false, "description": "Modelo LLM (gpt-4o-mini, gpt-4o, etc). Default: openai_model da conta ou LlmConstants::DEFAULT_MODEL" },
+      { "name": "config.instructions", "type": "string", "location": "body", "required": false, "description": "System prompt do agente" },
+      { "name": "config.temperature", "type": "number", "location": "body", "required": false, "description": "Temperatura LLM (0.0-2.0)" },
+      { "name": "config.activation_label", "type": "string", "location": "body", "required": false, "description": "Tag/label que ativa este agente em conversas (legacy — nova ativacao usa FK direta)" },
+      { "name": "config.feature_faq", "type": "boolean", "location": "body", "required": false, "description": "Habilita busca em FAQ/base de conhecimento" },
+      { "name": "config.feature_memory", "type": "boolean", "location": "body", "required": false, "description": "Habilita memoria de longo prazo do contato" },
+      { "name": "config.feature_citation", "type": "boolean", "location": "body", "required": false, "description": "Mostra fontes citadas nas respostas" },
+      { "name": "config.welcome_message", "type": "string", "location": "body", "required": false, "description": "Mensagem inicial enviada ao ativar o agente" },
+      { "name": "config.min_response_time", "type": "integer", "location": "body", "required": false, "description": "Delay minimo de resposta em segundos" },
+      { "name": "config.max_response_time", "type": "integer", "location": "body", "required": false, "description": "Delay maximo de resposta em segundos" },
+      { "name": "config.feature_follow_up", "type": "boolean", "location": "body", "required": false, "description": "Habilita follow-up automatico" },
+      { "name": "config.follow_up_time", "type": "integer", "location": "body", "required": false, "description": "Tempo em minutos pra disparar follow-up" },
+      { "name": "config.follow_up_prompt", "type": "string", "location": "body", "required": false, "description": "Instrucao IA para redigir o follow-up" },
+      { "name": "config.disabled_tools", "type": "array", "location": "body", "required": false, "description": "Array de IDs de tools nativas desabilitadas. Lista canonica em GET /captain/assistants/tools" },
+      { "name": "config.offer_ids", "type": "array", "location": "body", "required": false, "description": "Array de IDs de ofertas que o agente pode consultar" },
+      { "name": "config.media_asset_ids", "type": "array", "location": "body", "required": false, "description": "Array de IDs de Captain::MediaAsset que o agente pode enviar" },
+      { "name": "config.booking_event_type_ids", "type": "array", "location": "body", "required": false, "description": "Array de IDs de tipos de agendamento que o agente pode oferecer" }
     ]
   },
   {
@@ -6469,37 +6462,31 @@
     "method": "PATCH",
     "path": "/api/v1/accounts/{account_id}/captain/assistants/{id}",
     "title": "Atualizar Assistente IA",
-    "description": "Atualiza configuração de um assistente de IA.",
+    "description": "Atualiza configuracao de um AI Agente. Todos os campos sao opcionais. Use dot-notation (config.X) para campos aninhados.",
     "category": "Assistentes",
     "params": [
-      {
-        "name": "id",
-        "type": "integer",
-        "location": "path",
-        "required": true,
-        "description": "ID do assistente"
-      },
-      {
-        "name": "name",
-        "type": "string",
-        "location": "body",
-        "required": false,
-        "description": "Nome"
-      },
-      {
-        "name": "system_prompt",
-        "type": "string",
-        "location": "body",
-        "required": false,
-        "description": "Prompt"
-      },
-      {
-        "name": "active",
-        "type": "boolean",
-        "location": "body",
-        "required": false,
-        "description": "Ativo"
-      }
+      { "name": "id", "type": "integer", "location": "path", "required": true, "description": "ID do agente" },
+      { "name": "name", "type": "string", "location": "body", "required": false, "description": "Nome do agente" },
+      { "name": "description", "type": "string", "location": "body", "required": false, "description": "Descricao curta" },
+      { "name": "response_guidelines", "type": "array", "location": "body", "required": false, "description": "Array de strings com diretrizes de resposta" },
+      { "name": "guardrails", "type": "array", "location": "body", "required": false, "description": "Array de strings com guardrails (proibicoes)" },
+      { "name": "config.model", "type": "string", "location": "body", "required": false, "description": "Modelo LLM (gpt-4o-mini, gpt-4o, etc)" },
+      { "name": "config.instructions", "type": "string", "location": "body", "required": false, "description": "System prompt do agente" },
+      { "name": "config.temperature", "type": "number", "location": "body", "required": false, "description": "Temperatura LLM (0.0-2.0)" },
+      { "name": "config.activation_label", "type": "string", "location": "body", "required": false, "description": "Tag/label que ativa este agente em conversas (legacy)" },
+      { "name": "config.feature_faq", "type": "boolean", "location": "body", "required": false, "description": "Habilita busca em FAQ/base de conhecimento" },
+      { "name": "config.feature_memory", "type": "boolean", "location": "body", "required": false, "description": "Habilita memoria de longo prazo do contato" },
+      { "name": "config.feature_citation", "type": "boolean", "location": "body", "required": false, "description": "Mostra fontes citadas nas respostas" },
+      { "name": "config.welcome_message", "type": "string", "location": "body", "required": false, "description": "Mensagem inicial enviada ao ativar o agente" },
+      { "name": "config.min_response_time", "type": "integer", "location": "body", "required": false, "description": "Delay minimo de resposta em segundos" },
+      { "name": "config.max_response_time", "type": "integer", "location": "body", "required": false, "description": "Delay maximo de resposta em segundos" },
+      { "name": "config.feature_follow_up", "type": "boolean", "location": "body", "required": false, "description": "Habilita follow-up automatico" },
+      { "name": "config.follow_up_time", "type": "integer", "location": "body", "required": false, "description": "Tempo em minutos pra disparar follow-up" },
+      { "name": "config.follow_up_prompt", "type": "string", "location": "body", "required": false, "description": "Instrucao IA para redigir o follow-up" },
+      { "name": "config.disabled_tools", "type": "array", "location": "body", "required": false, "description": "Array de IDs de tools nativas desabilitadas. Lista canonica em GET /captain/assistants/tools" },
+      { "name": "config.offer_ids", "type": "array", "location": "body", "required": false, "description": "Array de IDs de ofertas que o agente pode consultar" },
+      { "name": "config.media_asset_ids", "type": "array", "location": "body", "required": false, "description": "Array de IDs de Captain::MediaAsset que o agente pode enviar" },
+      { "name": "config.booking_event_type_ids", "type": "array", "location": "body", "required": false, "description": "Array de IDs de tipos de agendamento que o agente pode oferecer" }
     ]
   },
   {
@@ -6517,6 +6504,30 @@
         "required": true,
         "description": "ID do assistente"
       }
+    ]
+  },
+  {
+    "id": "lionchat_captain_assistants_tools",
+    "method": "GET",
+    "path": "/api/v1/accounts/{account_id}/captain/assistants/tools",
+    "title": "Listar Tools Disponiveis",
+    "description": "Lista todas as tools nativas (built-in) e custom da conta. Se assistant_id presente, marca enabled/disabled por tool baseado em config.disabled_tools.",
+    "category": "Assistentes",
+    "params": [
+      { "name": "assistant_id", "type": "integer", "location": "query", "required": false, "description": "Se informado, marca enabled/disabled por tool desse assistant" }
+    ]
+  },
+  {
+    "id": "lionchat_captain_assistants_playground",
+    "method": "POST",
+    "path": "/api/v1/accounts/{account_id}/captain/assistants/{id}/playground",
+    "title": "Testar Agente (Playground)",
+    "description": "Roda mensagem de teste sem criar conversa real. Retorna a resposta do agente.",
+    "category": "Assistentes",
+    "params": [
+      { "name": "id", "type": "integer", "location": "path", "required": true, "description": "ID do agente" },
+      { "name": "message_content", "type": "string", "location": "body", "required": true, "description": "Mensagem do usuario para teste" },
+      { "name": "message_history", "type": "array", "location": "body", "required": false, "description": "Historico (array de {role, content})" }
     ]
   },
   {
@@ -11135,7 +11146,7 @@
         "type": "string",
         "location": "query",
         "required": false,
-        "description": "Tipo: account, agent, inbox, label, team"
+        "description": "Escopo: account|inbox|agent|label|team. Default: account"
       },
       {
         "name": "since",
@@ -11156,7 +11167,7 @@
         "type": "string",
         "location": "query",
         "required": false,
-        "description": "ID do recurso"
+        "description": "ID da entidade quando type != account"
       },
       {
         "name": "group_by",
@@ -11164,6 +11175,20 @@
         "location": "query",
         "required": false,
         "description": "Agrupar por: day, week, month, year"
+      },
+      {
+        "name": "business_hours",
+        "type": "boolean",
+        "location": "query",
+        "required": false,
+        "description": "Filtrar por horario comercial"
+      },
+      {
+        "name": "timezone_offset",
+        "type": "string",
+        "location": "query",
+        "required": false,
+        "description": "Offset de timezone em horas"
       }
     ]
   },
@@ -11175,20 +11200,12 @@
     "description": "Retorna resumo geral de metricas.",
     "category": "Relatorios",
     "params": [
-      {
-        "name": "since",
-        "type": "string",
-        "location": "query",
-        "required": false,
-        "description": "Timestamp inicio"
-      },
-      {
-        "name": "until",
-        "type": "string",
-        "location": "query",
-        "required": false,
-        "description": "Timestamp fim"
-      }
+      { "name": "since", "type": "string", "location": "query", "required": false, "description": "Timestamp inicio" },
+      { "name": "until", "type": "string", "location": "query", "required": false, "description": "Timestamp fim" },
+      { "name": "type", "type": "string", "location": "query", "required": false, "description": "Escopo: account|inbox|agent|label|team. Default: account" },
+      { "name": "id", "type": "string", "location": "query", "required": false, "description": "ID da entidade quando type != account" },
+      { "name": "business_hours", "type": "boolean", "location": "query", "required": false, "description": "Filtrar por horario comercial" },
+      { "name": "timezone_offset", "type": "string", "location": "query", "required": false, "description": "Offset de timezone em horas" }
     ]
   },
   {
@@ -11198,7 +11215,14 @@
     "title": "Resumo do Bot",
     "description": "Retorna resumo de atendimentos do bot.",
     "category": "Relatorios",
-    "params": []
+    "params": [
+      { "name": "since", "type": "string", "location": "query", "required": false, "description": "Timestamp inicio" },
+      { "name": "until", "type": "string", "location": "query", "required": false, "description": "Timestamp fim" },
+      { "name": "type", "type": "string", "location": "query", "required": false, "description": "Escopo: account|inbox|agent|label|team. Default: account" },
+      { "name": "id", "type": "string", "location": "query", "required": false, "description": "ID da entidade quando type != account" },
+      { "name": "business_hours", "type": "boolean", "location": "query", "required": false, "description": "Filtrar por horario comercial" },
+      { "name": "timezone_offset", "type": "string", "location": "query", "required": false, "description": "Offset de timezone em horas" }
+    ]
   },
   {
     "id": "lionchat_reports_list_7",
@@ -11386,7 +11410,7 @@
     "method": "POST",
     "path": "/api/v1/accounts/{account_id}/captain/assistants/{assistant_id}/scenarios",
     "title": "Criar Cenario",
-    "description": "Cria um novo cenario para o assistente.",
+    "description": "Cria um novo cenario para o assistente. Use `tool://tool_id` no markdown da `instruction` para referenciar tools — sao resolvidas automaticamente pelo backend (campo `tools` e read-only).",
     "category": "Assistentes",
     "params": [
       {
@@ -11404,11 +11428,25 @@
         "description": "Titulo do cenario"
       },
       {
-        "name": "instructions",
+        "name": "description",
         "type": "string",
         "location": "body",
         "required": true,
-        "description": "Instrucoes do cenario"
+        "description": "Descricao quando o cenario aplica"
+      },
+      {
+        "name": "instruction",
+        "type": "string",
+        "location": "body",
+        "required": true,
+        "description": "Instrucao do cenario (markdown). Pode conter referencias de tools com sintaxe `[Label](tool://tool_id)`"
+      },
+      {
+        "name": "enabled",
+        "type": "boolean",
+        "location": "body",
+        "required": false,
+        "description": "Toggle ativo/inativo (default true)"
       }
     ]
   },
@@ -11441,7 +11479,7 @@
     "method": "PUT",
     "path": "/api/v1/accounts/{account_id}/captain/assistants/{assistant_id}/scenarios/{id}",
     "title": "Atualizar Cenario",
-    "description": "Atualiza um cenario do assistente.",
+    "description": "Atualiza um cenario do assistente. Campo `tools` e read-only — referencias sao derivadas do markdown da `instruction` via sintaxe `[Label](tool://tool_id)`.",
     "category": "Assistentes",
     "params": [
       {
@@ -11466,11 +11504,25 @@
         "description": "Titulo"
       },
       {
-        "name": "instructions",
+        "name": "description",
+        "type": "string",
+        "location": "body",
+        "required": true,
+        "description": "Descricao quando o cenario aplica"
+      },
+      {
+        "name": "instruction",
         "type": "string",
         "location": "body",
         "required": false,
-        "description": "Instrucoes"
+        "description": "Instrucao do cenario (markdown). Pode conter referencias de tools com sintaxe `[Label](tool://tool_id)`"
+      },
+      {
+        "name": "enabled",
+        "type": "boolean",
+        "location": "body",
+        "required": false,
+        "description": "Toggle ativo/inativo"
       }
     ]
   },
@@ -11502,19 +11554,31 @@
     "id": "lionchat_captain_assistants_list_4",
     "method": "GET",
     "path": "/api/v1/accounts/{account_id}/captain/assistant_responses",
-    "title": "Listar Respostas",
-    "description": "Lista respostas configuradas para assistentes.",
+    "title": "Listar Respostas (FAQs)",
+    "description": "Lista FAQs/respostas configuradas. Filtros opcionais: assistant_id, document_id, status, search.",
     "category": "Assistentes",
-    "params": []
+    "params": [
+      { "name": "assistant_id", "type": "integer", "location": "query", "required": false, "description": "Filtra por agente dono da FAQ" },
+      { "name": "document_id", "type": "integer", "location": "query", "required": false, "description": "Filtra por documento de origem" },
+      { "name": "status", "type": "string", "location": "query", "required": false, "description": "approved | pending" },
+      { "name": "search", "type": "string", "location": "query", "required": false, "description": "Busca textual em pergunta/resposta" }
+    ]
   },
   {
     "id": "lionchat_captain_assistants_create_2",
     "method": "POST",
     "path": "/api/v1/accounts/{account_id}/captain/assistant_responses",
-    "title": "Criar Resposta",
-    "description": "Cria uma nova resposta para o assistente.",
+    "title": "Criar Resposta (FAQ)",
+    "description": "Cria uma nova FAQ vinculada a um agente. assistant_id e obrigatorio (NOT NULL no banco).",
     "category": "Assistentes",
     "params": [
+      {
+        "name": "assistant_id",
+        "type": "integer",
+        "location": "body",
+        "required": true,
+        "description": "ID do agente dono da FAQ — NOT NULL no banco"
+      },
       {
         "name": "question",
         "type": "string",
@@ -11528,6 +11592,13 @@
         "location": "body",
         "required": true,
         "description": "Resposta"
+      },
+      {
+        "name": "status",
+        "type": "string",
+        "location": "body",
+        "required": false,
+        "description": "approved (em uso) ou pending (aguardando revisao). Default: approved"
       }
     ]
   },
