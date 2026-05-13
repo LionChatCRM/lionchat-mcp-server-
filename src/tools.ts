@@ -343,6 +343,145 @@ function registerListCategoriesTool(
   );
 }
 
+// AIDEV-NOTE: Meta tool — returns full Flow Builder schema reference (no API call).
+// Helps LLMs build correct flow_data without hitting trial-and-error on
+// node types, action keys, source handles, etc.
+function registerFlowsSchemaReferenceTool(server: McpServer): void {
+  const reference = `LIONCHAT FLOW BUILDER — SCHEMA REFERENCE
+
+flow_data tem o formato Vue Flow: { nodes: [...], edges: [...] }.
+
+═══ NODE GERAL ═══
+{ "id": "string-unico", "type": "start|send_message|wait_response|condition|action|api|set_variable|wait|randomizer|update_group|ai|end", "position": {"x":0,"y":0}, "data": { ... } }
+
+═══ NODE TYPES + source handles ═══
+
+▸ start
+  data: { label }
+  (sem handles — start tem so output default pro proximo node)
+
+▸ send_message
+  data: { label, messageItems: [
+    { id, type:"text", content },
+    { id, type:"image", url, caption },
+    { id, type:"template", template_name, ... }
+  ]}
+  Handles: "success", "no_response" (se timeout), "error", "window_closed" (WhatsApp API Official).
+  Se messageItem text com buttons_enabled=true: gera "button_{value}" por botao.
+
+▸ wait_response
+  data: {
+    label, waitTime, waitUnit: "minutes"|"seconds",
+    validation: "any"|"options"|"regex",
+    acceptedOptions: ["1","2"],     // se validation='options'
+    regexPattern,                    // se validation='regex'
+    invalidMessage, maxRetries,
+    saveTo: "variable"|"attribute"|"",
+    saveVariable, saveAttrKey
+  }
+  Handles validation='options': "option_{val}" por opcao + "timeout"
+  Handles outros: "success" + "timeout"
+  IMPORTANTE: validation='options' ja roteia por opcao — NAO precisa condition depois.
+
+▸ condition
+  data: { label, conditions: [
+    { id, label, field, operator, value, valueType }
+  ]}
+  Handles: id de cada condicao + "default" (fallback).
+
+▸ action
+  data: { label, items: [
+    { key, config: {...} }
+  ]}
+  ATENCAO: items[].config NAO items[].params.
+  Keys validas:
+    Conversa: assign_agent({agent_id}), assign_team({team_id}),
+      change_status({status,snooze_option}), change_priority({priority}),
+      mute_conversation({}), add_private_note({content}),
+      send_email_transcript({email}), deactivate_flow({}),
+      assign_captain({assistant_id}), deactivate_captain({})
+    Contato: add_label({labels:[...]}), remove_label({labels:[...]}),
+      update_attribute({attr_source,attr_key,attr_value})
+    Kanban: create_kanban_item({funnel_id,funnel_stage,...}),
+      move_kanban_stage({funnel_id,funnel_stage}),
+      set_won({funnel_id}), set_lost({funnel_id,lost_reason}),
+      assign_agent_card({funnel_id,agent_id}),
+      add_card_note({funnel_id,text})
+  Handles: "success", "error"
+
+▸ api
+  data: { label, method, url, headers:[{key,value}], body, apiResponseVar }
+  Handles: "success", "error"
+
+▸ set_variable
+  data: { label, variables: [{name,value}] }
+
+▸ wait
+  data: { label, waitTime, waitUnit }
+
+▸ randomizer
+  data: { label, branches:[{id,percent}] }
+  Handles: id de cada branch.
+
+═══ EDGES ═══
+[{ "id", "source", "target", "sourceHandle", "type":"deletable", "animated":true }]
+sourceHandle OBRIGATORIO casar com handle exposto pelo node source.
+
+═══ ERROS COMUNS ═══
+1. action items[].config (nao params)
+2. send_message messageItems (nao items)
+3. wait_response validation='options' roteia por handle 'option_X' — NAO use condition depois
+4. sourceHandle precisa ser o handle REAL do node source ('success', 'option_1', 'timeout', 'no_response', 'c1' do condition, etc)
+5. inbox_ids no MCP vai no nivel raiz; no PUT bruto vai em {flow:{inbox_ids:[]}}
+6. send_message com buttons gera 'button_{value}' (value do botao, nao titulo)
+7. condition.field aceita liquid: '{{conversation.team_id}}', '{{contact.attributes.cpf}}', '{{var_nome}}'
+
+═══ EXEMPLO MINIMO — Menu 3 opcoes ═══
+{
+  "nodes": [
+    {"id":"s1","type":"start","position":{"x":50,"y":200},"data":{"label":"Inicio"}},
+    {"id":"m1","type":"send_message","position":{"x":300,"y":200},"data":{
+      "label":"Menu",
+      "messageItems":[{"id":"t1","type":"text","content":"Digite:\\n1 - Vendas\\n2 - Suporte\\n3 - Financeiro"}]
+    }},
+    {"id":"w1","type":"wait_response","position":{"x":600,"y":200},"data":{
+      "label":"Aguarda","waitTime":60,"waitUnit":"minutes",
+      "validation":"options","acceptedOptions":["1","2","3"],
+      "invalidMessage":"Digite 1, 2 ou 3.","maxRetries":3,
+      "saveTo":"variable","saveVariable":"menu"
+    }},
+    {"id":"a1","type":"action","position":{"x":900,"y":50},"data":{
+      "label":"Vendas","items":[{"key":"assign_team","config":{"team_id":24}}]
+    }},
+    {"id":"a2","type":"action","position":{"x":900,"y":200},"data":{
+      "label":"Suporte","items":[{"key":"assign_team","config":{"team_id":23}}]
+    }},
+    {"id":"a3","type":"action","position":{"x":900,"y":350},"data":{
+      "label":"Financeiro","items":[{"key":"assign_team","config":{"team_id":25}}]
+    }}
+  ],
+  "edges":[
+    {"id":"e1","source":"s1","target":"m1","type":"deletable","animated":true},
+    {"id":"e2","source":"m1","target":"w1","type":"deletable","animated":true},
+    {"id":"e3","source":"w1","sourceHandle":"option_1","target":"a1","type":"deletable","animated":true},
+    {"id":"e4","source":"w1","sourceHandle":"option_2","target":"a2","type":"deletable","animated":true},
+    {"id":"e5","source":"w1","sourceHandle":"option_3","target":"a3","type":"deletable","animated":true}
+  ]
+}`;
+
+  server.tool(
+    'lionchat_flows_schema_reference',
+    'Returns the full Flow Builder schema reference: node types, action keys, source handles, edge format, common pitfalls and a minimal working example. CALL THIS BEFORE building or editing a flow_data via lionchat_flows_create or lionchat_flows_update.',
+    {},
+    { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
+    async () => {
+      return {
+        content: [{ type: 'text' as const, text: reference }],
+      };
+    }
+  );
+}
+
 // AIDEV-NOTE: Main entry point — reads endpoints.json, filters, and registers all tools + meta tools
 export function registerTools(
   server: McpServer,
@@ -384,6 +523,7 @@ export function registerTools(
   // AIDEV-NOTE: Always register meta tools regardless of category filters
   registerPingTool(server, config, client);
   registerListCategoriesTool(server, endpoints);
+  registerFlowsSchemaReferenceTool(server);
 
-  return filtered.length + 2; // +2 for ping and list_categories
+  return filtered.length + 3; // +3 for ping, list_categories, flows_schema_reference
 }

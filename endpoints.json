@@ -5459,7 +5459,7 @@
     "method": "POST",
     "path": "/api/v1/accounts/{account_id}/flows",
     "title": "Criar Flow",
-    "description": "Cria um flow (FlowBuilder) na conta. **Requer perfil Administrador.**",
+    "description": "Cria um flow (FlowBuilder) na conta. Requer Admin. flow_data segue formato Vue Flow {nodes:[], edges:[]}. NODE SCHEMA — start: {label}. send_message: {label, messageItems:[{id, type:'text', content}]} handles: success/no_response/error. wait_response: {label, waitTime, waitUnit:'minutes'|'seconds', validation:'any'|'options'|'regex', acceptedOptions:['1','2'] (se options), regexPattern (se regex), invalidMessage, maxRetries:3, saveTo:'variable'|'attribute'|'', saveVariable, saveAttrKey} — quando validation='options' os handles ficam 'option_{val}' + 'timeout'; senão 'success' + 'timeout' — NUNCA precisa de condition node depois. condition: {label, conditions:[{id, label, field, operator, value}]} handles = id de cada condicao + 'default'. action: {label, items:[{key, config:{...}}]} keys comuns assign_team({team_id}), assign_agent({agent_id}), add_label({labels:['slug',...]}), remove_label({labels}), change_status({status}), change_priority({priority}), mute_conversation({}), add_private_note({content}), create_kanban_item({funnel_id, funnel_stage,...}), move_kanban_stage({funnel_id, funnel_stage}), deactivate_flow({}), assign_captain({assistant_id}). api: {label, method, url, headers:[{key,value}], body, apiResponseVar}. set_variable: {label, variables:[{name, value}]}. wait: {label, waitTime, waitUnit}. EDGE SCHEMA: {id, source, target, sourceHandle (opcional, OBRIGATORIO casar com handle exposto pelo node source), type:'deletable', animated:true}. ERROS COMUNS QUE DEVEM SER EVITADOS: (1) action usa items[].config NAO items[].params; (2) send_message usa messageItems NAO items; (3) wait_response com validation='options' NAO precisa de condition node — use sourceHandle='option_X' diretamente; (4) sourceHandle inventado tipo 'c1','c2' nao funciona — sempre usar o handle real; (5) inbox_ids precisa vir aninhado em {flow:{inbox_ids:[]}} no PUT bruto, mas no MCP basta inbox_ids no nivel raiz.",
     "category": "Flows",
     "params": [
       {
@@ -5481,21 +5481,21 @@
         "type": "string",
         "location": "body",
         "required": true,
-        "description": "Tipo de canal (ex: Channel::Waha)"
+        "description": "Tipo de canal (ex: Channel::Waha, Channel::WebWidget, Channel::Whatsapp)"
       },
       {
         "name": "inbox_ids",
         "type": "array",
         "location": "body",
         "required": false,
-        "description": "IDs das caixas de entrada"
+        "description": "IDs das caixas de entrada a vincular"
       },
       {
         "name": "flow_data",
         "type": "object",
         "location": "body",
         "required": false,
-        "description": "Dados dos blocos e conexoes"
+        "description": "Estrutura {nodes:[], edges:[]} em formato Vue Flow. CONSULTE A DESCRICAO DO TOOL para schema completo dos nodes (start, send_message, wait_response, condition, action, api, set_variable, wait). Cada node tem campo 'data' com formato especifico por tipo. Edges precisam ter sourceHandle correto (ex: 'option_1', 'success', 'timeout', 'no_response')."
       }
     ]
   },
@@ -5521,7 +5521,7 @@
     "method": "PUT",
     "path": "/api/v1/accounts/{account_id}/flows/{id}",
     "title": "Atualizar Flow",
-    "description": "Atualiza nome, descrição, caixas de entrada ou dados dos blocos de um flow.",
+    "description": "Atualiza nome, descricao, caixas de entrada ou dados dos blocos. Mesmo schema de flow_data do tool lionchat_flows_create — consulte a descricao daquele tool para o schema completo dos nodes (start, send_message, wait_response, condition, action, api, set_variable) e dos edges. RECAP RAPIDO: action items[].config (nao params); send_message messageItems (nao items); wait_response validation='options' gera handles 'option_X' (dispensa condition node); edges sourceHandle DEVE casar com handle real do node source.",
     "category": "Flows",
     "params": [
       {
@@ -5550,14 +5550,14 @@
         "type": "array",
         "location": "body",
         "required": false,
-        "description": "IDs das caixas"
+        "description": "IDs das caixas de entrada a vincular (substitui a lista atual)"
       },
       {
         "name": "flow_data",
         "type": "object",
         "location": "body",
         "required": false,
-        "description": "Blocos e conexoes"
+        "description": "Estrutura {nodes:[], edges:[]} em formato Vue Flow. Ver descricao do tool lionchat_flows_create para schema dos nodes."
       }
     ]
   },
@@ -12512,6 +12512,48 @@
         "location": "body",
         "required": true,
         "description": "Modelo: contact_attribute ou conversation_attribute"
+      },
+      {
+        "name": "attribute_key",
+        "type": "string",
+        "location": "body",
+        "required": true,
+        "description": "Chave unica (slug snake_case, ex: cpf, data_nascimento). Aceita letras, numeros, underscore, hifen e ponto"
+      },
+      {
+        "name": "attribute_description",
+        "type": "string",
+        "location": "body",
+        "required": false,
+        "description": "Descricao do atributo (opcional)"
+      },
+      {
+        "name": "attribute_values",
+        "type": "array",
+        "location": "body",
+        "required": false,
+        "description": "Lista de opcoes (apenas para attribute_display_type=list). Ex: [\"Sim\", \"Nao\"]"
+      },
+      {
+        "name": "regex_pattern",
+        "type": "string",
+        "location": "body",
+        "required": false,
+        "description": "Regex de validacao (opcional, para tipo text)"
+      },
+      {
+        "name": "regex_cue",
+        "type": "string",
+        "location": "body",
+        "required": false,
+        "description": "Dica de formato exibida ao usuario quando regex_pattern falha"
+      },
+      {
+        "name": "default_value",
+        "type": "string",
+        "location": "body",
+        "required": false,
+        "description": "Valor default do atributo"
       }
     ]
   },
