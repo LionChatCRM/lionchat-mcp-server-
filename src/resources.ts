@@ -72,6 +72,20 @@ export const RESOURCES: ResourceDef[] = [
       'Codigos HTTP, erros comuns (401/403/422/429), erros MCP, debugging, quando reportar suporte. Use pra interpretar erros.',
     filename: 'troubleshooting.md',
   },
+  {
+    name: 'FlowBuilder Design Guide',
+    uri: 'lionchat://docs/flowbuilder-design-guide',
+    description:
+      'OBRIGATORIO antes de criar/editar fluxo. Arvore de decisao por necessidade, schema por tipo de node (com handles expostos), regras de layout/positioning, erros comuns, checklist pre-submit.',
+    filename: 'flowbuilder-design-guide.md',
+  },
+  {
+    name: 'FlowBuilder Patterns',
+    uri: 'lionchat://docs/flowbuilder-patterns',
+    description:
+      '10 templates de fluxos prontos pra adaptar: saudacao, captura, qualificacao BANT, CSAT, horario comercial, IA intent, re-engajamento, escalation, agendamento, webhook. Cada um com layout valido e handles certos.',
+    filename: 'flowbuilder-patterns.md',
+  },
 ];
 
 function findDocsPath(filename: string): string | null {

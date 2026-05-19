@@ -153,6 +153,12 @@ Quando precisar de detalhes profundos, leia um destes documents via `resources/r
 - `lionchat://docs/data-model` — Modelo de dados detalhado, FKs, índices
 - `lionchat://docs/reports-guide` — Como interpretar cada um dos 19 endpoints de relatório
 - `lionchat://docs/api-conventions` — Auth, paginação, filtros, errors, rate limits
+- `lionchat://docs/conversation-flows` — Ciclo de vida de uma conversa (criação, auto-assignment, IA, resolução)
+- `lionchat://docs/kanban-deep-dive` — Estrutura completa do Kanban (Funnel/Stage/Item/pipeline)
+- `lionchat://docs/best-practices` — Como economizar tokens, evitar rate limit, ordem de operações
+- `lionchat://docs/troubleshooting` — Códigos HTTP, erros comuns, debugging
+- `lionchat://docs/flowbuilder-design-guide` — **OBRIGATÓRIO** antes de criar/editar fluxo: schema de nodes, handles expostos por tipo, layout/positioning, erros comuns, checklist
+- `lionchat://docs/flowbuilder-patterns` — 10 templates de fluxos prontos pra adaptar (saudação, captura, qualificação, CSAT, IA, etc)
 
 ## 9. Prompts pré-prontos (workflows automatizados)
 
@@ -162,6 +168,24 @@ O usuário pode invocar via slash command (`/nome_do_prompt`):
 - `stuck_leads` — Leads parados há N dias no Kanban
 - `weekly_recap` — Resumo da semana
 - `customer_health` — Saúde completa de 1 cliente (conversas + Kanban + CSAT)
+- `inactive_contacts` — Contatos sem interação pra reativação
+- `team_load_balance` — Carga e distribuição da equipe
+- `quality_audit` — Auditoria de qualidade de conversas resolvidas
+- `whatsapp_template_usage` — Uso e performance de templates WhatsApp
+- `create_flow_brainstorm` — Banco de perguntas pra descobrir o que o cliente quer ANTES de criar um fluxo
+
+### Regras específicas para criação de FlowBuilder
+
+Quando o cliente pedir pra criar um fluxo:
+
+1. **Antes de gerar JSON**, avalie se você tem informação suficiente. Se faltar (canal, gatilho, conteúdo, ramificações), use o prompt `create_flow_brainstorm` como **guia de perguntas sugeridas** — escolha só as relevantes pro caso, não force checklist
+2. Fluxo simples (1-3 nodes, sem ramificação) → 2-3 perguntas bastam
+3. Fluxo complexo (5+ nodes, IA, API externa, várias ramificações) → vale aprofundar
+4. **SEMPRE consulte** `lionchat://docs/flowbuilder-design-guide` antes de chamar `flows_create` (schema, handles, layout)
+5. **SEMPRE verifique** se algum template em `lionchat://docs/flowbuilder-patterns` já resolve o caso — adaptar é mais seguro do que criar do zero
+6. **NUNCA crie** nodes sem `position: {x, y}` — eles ficam empilhados no canvas
+7. **NUNCA invente** `sourceHandle` — use só os listados no design guide por tipo de node (ex: condition usa `cond_0`/`cond_1`/`default`, não IDs livres)
+8. Antes de chamar `flows_create`, apresente um resumo em **linguagem natural** do que vai criar e confirme com o cliente
 
 ## 10. Idioma das respostas
 

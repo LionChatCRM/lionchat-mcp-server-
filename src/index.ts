@@ -63,8 +63,8 @@ async function main() {
     console.error(`Base URL: ${config.baseUrl}`);
     console.error(`Account: ${config.accountId}`);
     console.error(`Tools registered: ${toolCount}`);
-    console.error(`Resources registered: 8 (glossary, data-model, reports-guide, api-conventions, conversation-flows, kanban-deep-dive, best-practices, troubleshooting)`);
-    console.error(`Prompts registered: 8 (productivity_report, stuck_leads, weekly_recap, customer_health, inactive_contacts, team_load_balance, quality_audit, whatsapp_template_usage)`);
+    console.error(`Resources registered: 10 (glossary, data-model, reports-guide, api-conventions, conversation-flows, kanban-deep-dive, best-practices, troubleshooting, flowbuilder-design-guide, flowbuilder-patterns)`);
+    console.error(`Prompts registered: 9 (productivity_report, stuck_leads, weekly_recap, customer_health, inactive_contacts, team_load_balance, quality_audit, whatsapp_template_usage, create_flow_brainstorm)`);
     if (config.categories) {
       console.error(`Categories filter: ${config.categories.join(', ')}`);
     }
