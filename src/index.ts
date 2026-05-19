@@ -8,6 +8,9 @@ import { dirname, resolve } from 'path';
 import { loadConfig } from './config.js';
 import { LionChatClient } from './client.js';
 import { registerTools } from './tools.js';
+import { getServerInstructions } from './instructions.js';
+import { registerResources } from './resources.js';
+import { registerPrompts } from './prompts.js';
 
 // AIDEV-NOTE: Read version from package.json to avoid hardcoding in multiple places
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -28,11 +31,22 @@ async function main() {
       console.error('WARNING: Base URL is not HTTPS. API token may be transmitted in cleartext.');
     }
 
-    // AIDEV-NOTE: Create MCP server instance with name and version from package.json
-    const server = new McpServer({
-      name: 'lionchat-mcp-server',
-      version: VERSION,
-    });
+    // AIDEV-NOTE: Create MCP server com instructions, capabilities (tools/resources/prompts).
+    // Instructions explica modelo de dados, convencoes, glossario pra IA conectada.
+    const server = new McpServer(
+      {
+        name: 'lionchat-mcp-server',
+        version: VERSION,
+      },
+      {
+        instructions: getServerInstructions(),
+        capabilities: {
+          tools: {},
+          resources: { subscribe: false, listChanged: false },
+          prompts: { listChanged: false },
+        },
+      },
+    );
 
     // AIDEV-NOTE: Create HTTP client that wraps fetch calls to LionChat API
     const client = new LionChatClient(config);
@@ -40,11 +54,17 @@ async function main() {
     // AIDEV-NOTE: Register tools from endpoints.json, filtered by config.categories if set
     const toolCount = registerTools(server, config, client);
 
+    // AIDEV-NOTE: Resources (docs sob demanda) + Prompts (templates de workflow)
+    registerResources(server);
+    registerPrompts(server);
+
     // AIDEV-NOTE: Use stderr for logs — stdout is reserved for MCP JSON-RPC protocol
     console.error(`LionChat MCP Server v${VERSION}`);
     console.error(`Base URL: ${config.baseUrl}`);
     console.error(`Account: ${config.accountId}`);
     console.error(`Tools registered: ${toolCount}`);
+    console.error(`Resources registered: 4 (glossary, data-model, reports-guide, api-conventions)`);
+    console.error(`Prompts registered: 4 (productivity_report, stuck_leads, weekly_recap, customer_health)`);
     if (config.categories) {
       console.error(`Categories filter: ${config.categories.join(', ')}`);
     }

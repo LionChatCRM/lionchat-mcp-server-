@@ -1,0 +1,378 @@
+# Modelo de Dados LionChat (Detalhado)
+
+Mapa completo de entidades, relacionamentos e foreign keys. Use quando precisar entender como dados conectam ou como navegar entre recursos.
+
+## Multi-tenancy: Account
+
+`Account` é a raiz. **TODA** entidade tem `account_id` direta ou indiretamente. Nunca há "vazamento" entre contas.
+
+```
+Account
+├── id (PK)
+├── name
+├── plan_id (FK → Plan)
+├── feature_flags (bigint bitfield)
+├── feature_flags_2 (bigint bitfield, features 64+)
+├── usage_limits (jsonb)
+├── custom_attributes (jsonb)
+├── domain
+├── support_email
+└── locale (string, ex: 'pt_BR')
+```
+
+## Usuários e Permissões
+
+```
+User                           AccountUser (junction)
+├── id (PK)                    ├── id (PK)
+├── name                       ├── user_id (FK → User)
+├── email                      ├── account_id (FK → Account)
+├── pubsub_token               ├── role (enum: 'agent' | 'administrator')
+├── ui_settings (jsonb)        ├── custom_role_id (FK opcional)
+├── access_token (has_one)     ├── auto_offline (bool)
+└── account_users (has_many)   ├── availability (enum)
+                               ├── active_at
+                               └── permissions (string[])
+```
+
+**Importante:** o `role` no `AccountUser` é por conta. Mesmo `User` pode ser admin numa conta e agent em outra.
+
+## Canal de Comunicação
+
+```
+Inbox
+├── id (PK)
+├── account_id (FK)
+├── name
+├── channel_type (string, ex: 'Channel::Waha')
+├── channel_id (FK polimórfico)
+├── enable_auto_assignment (bool)
+├── working_hours_enabled (bool)
+└── greeting_enabled (bool)
+
+Channel::Waha / Channel::Whatsapp / Channel::WebWidget / ...
+├── id (PK, table específica)
+├── account_id (FK)
+├── (campos específicos por canal)
+└── has_one :inbox (via Channelable concern)
+
+InboxMember (junction Inbox ↔ User)
+├── inbox_id
+└── user_id
+```
+
+## Conversação e Mensagens
+
+```
+Conversation
+├── id (PK, global)
+├── account_id (FK)
+├── display_id (visível pra humanos, único por conta)
+├── inbox_id (FK, optional: pode ser NULL se inbox deletada)
+├── contact_id (FK → Contact)
+├── contact_inbox_id (FK → ContactInbox)
+├── assignee_id (FK → User, optional)
+├── team_id (FK → Team, optional)
+├── captain_assistant_id (FK → Captain::Assistant, optional)
+├── status (int: 0/1/2/3)
+├── priority (string)
+├── snoozed_until (datetime, se status=3)
+├── waiting_since (datetime)
+├── first_reply_created_at (datetime)
+├── last_activity_at (datetime)
+├── custom_attributes (jsonb)
+├── additional_attributes (jsonb)
+└── labels (via taggings)
+
+Message
+├── id (PK)
+├── account_id (FK)
+├── conversation_id (FK)
+├── inbox_id (FK)
+├── content (text, nullable)
+├── message_type (int: 0/1/2/3)
+├── content_type (string)
+├── content_attributes (jsonb)
+├── status (enum: sent/delivered/read/failed/progress)
+├── source_id (string, ID externo do canal)
+├── sender_type / sender_id (polimórfico)
+├── private (bool: nota privada)
+├── sentiment (jsonb)
+├── attachments (has_many)
+└── created_at
+
+Attachment
+├── id (PK)
+├── message_id (FK)
+├── account_id (FK)
+├── file_type (string ou int)
+├── extension
+├── file (ActiveStorage attached)
+├── transcribed_text (string, áudio/PDF)
+├── meta (jsonb, ex: image_description)
+├── width / height (pixels)
+└── file_size (bytes)
+```
+
+## Contatos
+
+```
+Contact
+├── id (PK)
+├── account_id (FK)
+├── name
+├── email
+├── phone_number (E.164, ex: +5511999999999)
+├── identifier (ID externo opcional)
+├── additional_attributes (jsonb)
+├── custom_attributes (jsonb)
+├── pubsub_token
+├── blocked (bool)
+├── last_activity_at
+└── company_id (FK → Company, optional)
+
+ContactInbox (junction Contact ↔ Inbox)
+├── id (PK)
+├── contact_id (FK)
+├── inbox_id (FK)
+├── source_id (string, ID do contato no canal)
+└── additional_attributes (jsonb, ex: not_on_whatsapp)
+
+Company
+├── id (PK)
+├── account_id (FK)
+├── name
+└── domain
+```
+
+**Padrões de `source_id` por canal:**
+- Waha: `5511999999999@c.us` (1-on-1) ou `120363xxx@g.us` (grupo) ou `XXXX@lid` (LID)
+- WhatsApp Cloud: `5511999999999` (E.164 sem prefixo)
+- Email: o email mesmo
+- WebWidget: UUID gerado
+
+## Kanban / CRM
+
+```
+Funnel
+├── id (PK)
+├── account_id (FK)
+├── name
+├── stages (jsonb: array de { name, color, position })
+├── archived (bool)
+└── created_at
+
+KanbanItem
+├── id (PK)
+├── account_id (FK)
+├── funnel_id (FK)
+├── funnel_stage (string, nome da etapa atual)
+├── stage_entered_at (datetime)
+├── position (int, ordem dentro da etapa)
+├── conversation_display_id (FK opcional → Conversation.display_id)
+├── item_details (jsonb)
+├── custom_attributes (jsonb)
+├── assigned_agents (jsonb array)
+├── linked_conversations (jsonb array de { display_id })
+├── checklist (jsonb)
+├── activities (jsonb)
+├── timer_started_at / timer_duration
+└── created_at
+
+KanbanChecklist
+├── kanban_item_id (FK)
+├── title
+├── completed (bool)
+└── position
+
+KanbanNote
+├── kanban_item_id (FK)
+├── content (text)
+└── created_at
+```
+
+## IA / Captain
+
+```
+Captain::Assistant
+├── id (PK)
+├── account_id (FK)
+├── name
+├── description
+├── config (jsonb: model, temperature, instructions, feature_memory, feature_faq, ...)
+├── guardrails (string[])
+├── response_guidelines (string[])
+└── active_conversations_count
+
+Captain::AssistantResponse (FAQ)
+├── assistant_id (FK)
+├── question
+├── answer
+├── status (pending/approved/rejected)
+├── embedding (vector, pgvector)
+└── documentable (polymorphic: Conversation que gerou)
+
+Captain::Document (Base de conhecimento)
+├── assistant_id (FK)
+├── content (text)
+└── name
+
+Captain::CopilotPrompt (Prompts salvos)
+├── account_id (FK)
+├── title
+└── prompt (text)
+```
+
+## Automações
+
+```
+AutomationRule
+├── id (PK)
+├── account_id (FK)
+├── name
+├── event_name (conversation_created, conversation_resolved, message_created, conversation_opened, conversation_updated)
+├── conditions (jsonb array)
+├── actions (jsonb array)
+└── active (bool)
+
+Macro
+├── id (PK)
+├── account_id (FK)
+├── name
+├── actions (jsonb array)
+└── visibility (personal/global)
+```
+
+## Agenda / Tarefas / Booking
+
+```
+AccountTask (agenda interna)
+├── id (PK)
+├── account_id (FK)
+├── user_id (FK → User, assignee)
+├── title
+├── description
+├── due_at (datetime)
+├── completed_at (datetime, nullable)
+└── color (string)
+
+BookingEventType (template de agendamento)
+├── id (PK)
+├── account_id (FK)
+├── name (ex: "Demo 30min")
+├── duration_minutes
+├── availability_rules (jsonb)
+└── description
+
+Booking (agendamento confirmado)
+├── id (PK)
+├── account_id (FK)
+├── booking_event_type_id (FK)
+├── user_id (FK, agente que vai atender)
+├── attendee_name / attendee_email / attendee_phone
+├── start_time / end_time (ISO 8601)
+├── status (scheduled/cancelled/completed)
+└── meeting_url (Google Calendar / Zoom / etc)
+```
+
+## Relatórios e Métricas
+
+```
+ReportingEvent
+├── account_id (FK)
+├── name (conversation_created, conversation_resolved, csat_score, ...)
+├── value (numeric)
+├── value_in_business_hours (numeric)
+├── conversation_id (FK opcional)
+├── user_id (FK opcional)
+├── inbox_id (FK opcional)
+└── created_at
+
+CsatSurveyResponse
+├── conversation_id (FK)
+├── contact_id (FK)
+├── score (1-5)
+├── feedback_message
+└── created_at
+
+SLA::Policy (políticas de SLA)
+├── account_id (FK)
+├── first_response_time_threshold (int, seconds)
+├── next_response_time_threshold
+├── resolution_time_threshold
+└── conditions (jsonb)
+```
+
+## Webhooks / Integrações
+
+```
+Webhook (saída)
+├── account_id (FK)
+├── url
+├── subscriptions (string[]: eventos a notificar)
+└── inbox_id (FK opcional, scope)
+
+Integrations::Hook (integrações: OpenAI, Groq, Slack, etc)
+├── account_id (FK)
+├── app_id (string: 'openai', 'groq', 'slack', 'dialogflow', ...)
+├── settings (jsonb: api_key, model, ...)
+├── status (boolean: ligado/desligado)
+└── reference_id (string opcional)
+
+MetaLeadIntegration (Facebook Lead Ads)
+├── account_id (FK)
+├── page_id
+├── page_name
+├── facebook_page_id (FK polimórfico)
+├── status (active/token_expired/paused)
+└── meta_lead_forms (has_many)
+```
+
+## Cardinalidades importantes
+
+- `Account` 1—N `User` (via AccountUser)
+- `Account` 1—N `Inbox`
+- `Account` 1—N `Contact`
+- `Account` 1—N `Conversation`
+- `Conversation` 1—N `Message`
+- `Message` 1—N `Attachment`
+- `Contact` 1—N `ContactInbox` (um por canal)
+- `Funnel` 1—N `KanbanItem`
+- `Conversation` 0..1—1 `KanbanItem` (opcional)
+- `Conversation` 0..1—1 `Captain::Assistant` (opcional, via captain_assistant_id)
+
+## Como navegar (queries comuns)
+
+### Conversa → Cliente
+```
+Conversation → contact_id → Contact
+```
+
+### Cliente → Todas as conversas
+```
+Contact → has_many :conversations
+```
+
+### Mensagem → Conta
+```
+Message → account_id (direto) OU Message → conversation → account_id
+```
+
+### Card Kanban → Conversa vinculada
+```
+KanbanItem → conversation_display_id → Conversation (where display_id = X)
+```
+
+### Conta → Plano e features
+```
+Account → plan_id → Plan
+Account.feature_enabled?('captain_v2')  # checa bitfield
+```
+
+## Soft-delete e statuses
+
+- Conversation NUNCA é deletada — só muda `status` (snoozed, resolved)
+- Inbox quando deletada → conversations ficam com `inbox_id = NULL` (dependent: :nullify)
+- Contact pode ser deletado (raro) — destroi conversations em cascata (cuidado)
+- KanbanItem pode ser deletado livremente
+- Funnel `archived = true` → não aparece na UI mas dados permanecem

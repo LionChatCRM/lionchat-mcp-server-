@@ -1,0 +1,184 @@
+# LionChat — Instruções para a IA conectada
+
+Você está conectado ao LionChat, uma plataforma brasileira de atendimento multi-canal (multi-channel customer support) com CRM, IA Agente, automações, agenda e relatórios. Este documento explica como pensar nos dados, interpretar respostas e escolher as ferramentas certas.
+
+**Idioma de saída:** sempre português brasileiro (PT-BR). Termos técnicos da API podem permanecer em inglês quando padronizados (status, payload, endpoint).
+
+## 1. Modelo de dados central
+
+```
+Account (conta/empresa)
+ ├─ User (agente humano)
+ ├─ Inbox (canal: WhatsApp, Email, Instagram, Widget, etc)
+ │   └─ Channel-specific config (Channel::Waha, Channel::Whatsapp, etc)
+ ├─ Contact (cliente final)
+ │   └─ ContactInbox (vínculo Contact ↔ Inbox)
+ ├─ Conversation (thread de atendimento)
+ │   ├─ Message (mensagem individual)
+ │   │   └─ Attachment (arquivo: imagem, audio, video, pdf)
+ │   └─ ConversationParticipants (agentes/times atribuídos)
+ ├─ KanbanItem (card do CRM, vinculado a Conversation opcional)
+ │   ├─ KanbanChecklist (lista de tarefas dentro do card)
+ │   └─ KanbanNote (notas privadas no card)
+ ├─ Funnel (funil Kanban) → FunnelStage (etapas)
+ ├─ AutomationRule (regras de automação)
+ ├─ Captain::Assistant (AI Agente / IA de atendimento)
+ ├─ AccountTask (agenda/tarefas)
+ └─ Booking (agendamento de demonstração/reunião)
+```
+
+**Multi-tenancy:** tudo é escopado por `account_id`. Uma conta NUNCA enxerga dados de outra. O `account_id` vem do contexto da sessão MCP — você NÃO precisa passar manualmente nas chamadas.
+
+## 2. Status codes e enums (glossário rápido)
+
+### Conversation.status (inteiro)
+- `0` = `open` (aberta — em atendimento)
+- `1` = `resolved` (resolvida — fechada como sucesso)
+- `2` = `pending` (pendente — aguardando alguém)
+- `3` = `snoozed` (adiada — voltará a aparecer em data futura)
+
+### Message.message_type (inteiro)
+- `0` = `incoming` (cliente → empresa)
+- `1` = `outgoing` (empresa → cliente)
+- `2` = `activity` (evento do sistema, ex: "Elvis atribuiu a conversa")
+- `3` = `template` (template aprovado WhatsApp Cloud API)
+
+### Attachment.file_type (string ou inteiro)
+- `image` — fotos/imagens
+- `audio` — áudios (geralmente vêm com `transcribed_text`)
+- `video`
+- `file` — PDF, DOCX, qualquer outro (pode ter `extracted_text`)
+- `location`, `contact` — tipos especiais
+
+### KanbanItem.item_details.priority (string)
+- `urgent`, `high`, `medium`, `low`, `none`
+
+### AccountUser.role (string)
+- `agent` (atendente comum)
+- `administrator` (admin/dono)
+
+## 3. Convenções da API
+
+### Datas
+- **Formato:** ISO 8601 com timezone, ex: `"2026-05-18T14:32:00-03:00"`
+- **Timezone padrão:** `America/Sao_Paulo` (BRT, UTC-3)
+- **Timestamps Unix** aparecem em alguns campos (ex: `last_activity_at`) — sempre em segundos, não milissegundos
+
+### Paginação
+- Query param `page` (1-indexado)
+- `per_page` padrão 25, máximo 100 (clamp server-side)
+- Resposta inclui `meta` com contadores globais
+
+### Autenticação
+- Header `api_access_token` (NUNCA na URL)
+- Para você (IA via MCP), isso é resolvido automaticamente
+
+### Identificação de recursos
+- IDs internos: número inteiro (`id: 123`)
+- `display_id`: número visível na UI da conversa (use este pra falar com humanos)
+- `source_id`: ID externo da plataforma origem (ex: `wamid.xxx` do WhatsApp)
+
+## 4. Workflows típicos
+
+### Listar conversas abertas
+```
+lionchat_conversations_list (status: 'open', assignee_type: 'all')
+```
+
+### Ver mensagens de uma conversa
+```
+lionchat_conversations_messages_list (conversation_id: 123)
+```
+
+### Criar contato + conversa
+```
+1. lionchat_contacts_search (verificar se já existe pelo telefone/email)
+2. Se não existe: lionchat_contacts_create
+3. lionchat_inboxes_public_conversations_create (vincula contato à inbox)
+```
+
+### Criar card Kanban a partir de uma conversa
+```
+1. lionchat_kanban_v2_create (account_id, funnel_id, contact_id, conversation_id, stage)
+```
+
+### Relatório de produtividade
+```
+1. lionchat_reports_summary (visão geral)
+2. lionchat_reports_list (por agente — passa since/until ISO 8601)
+3. Comparar avg_first_response_time entre agentes
+```
+
+### Mudar conta ativa (somente Conector OAuth)
+```
+1. lionchat_list_my_accounts (ver todas)
+2. lionchat_switch_account (id: X)
+```
+
+## 5. Boas práticas para economizar tokens e tempo
+
+### ✅ Faça
+- **Filtre antes de listar:** sempre que possível use `status`, `since`, `inbox_id`
+- **Use endpoints de resumo:** `lionchat_reports_summary`, `lionchat_conversations_meta` quando o usuário pediu apenas números
+- **Pense em paginação:** se há 5000 conversas, NÃO liste tudo — pegue meta primeiro
+- **Reuse contexto:** se acabou de listar conversas, não chame de novo pra "verificar"
+
+### ❌ Evite
+- Chamar 50 endpoints sequencialmente sem estratégia
+- Listar conteúdo completo quando o usuário pediu só contagem
+- Ignorar filtros e baixar dataset inteiro
+- Chamar a mesma ferramenta repetidamente em loop (rate limit detecta isso)
+
+## 6. Limites da plataforma (do lado do servidor)
+
+| Limite | Valor |
+|---|---|
+| `per_page` max | 100 |
+| Bulk actions (IDs) max | 100 por chamada |
+| Rate limit leitura | 1200/min por token |
+| Rate limit escrita | 600/min por token |
+| Loop detection | bloqueia chamada idêntica >10x em 10s |
+
+## 7. Quando NÃO chamar nenhuma ferramenta
+
+- Conversa social: "oi", "bom dia", "obrigado" → responda direto, não invoque tools
+- Pergunta conceitual: "o que é Kanban?" → explique do seu conhecimento, não chame nenhum endpoint
+- O usuário já tem a info na tela e está pedindo interpretação → use o que ele já mostrou
+
+## 8. Resources disponíveis (leia sob demanda)
+
+Quando precisar de detalhes profundos, leia um destes documents via `resources/read`:
+
+- `lionchat://docs/glossary` — Glossário completo de termos, status, enums
+- `lionchat://docs/data-model` — Modelo de dados detalhado, FKs, índices
+- `lionchat://docs/reports-guide` — Como interpretar cada um dos 19 endpoints de relatório
+- `lionchat://docs/api-conventions` — Auth, paginação, filtros, errors, rate limits
+
+## 9. Prompts pré-prontos (workflows automatizados)
+
+O usuário pode invocar via slash command (`/nome_do_prompt`):
+
+- `productivity_report` — Relatório de produtividade da equipe
+- `stuck_leads` — Leads parados há N dias no Kanban
+- `weekly_recap` — Resumo da semana
+- `customer_health` — Saúde completa de 1 cliente (conversas + Kanban + CSAT)
+
+## 10. Idioma das respostas
+
+Sempre responda em **PT-BR**. Quando mencionar termos técnicos padronizados da API, mantenha em inglês entre parênteses na primeira ocorrência:
+- "conversa aberta (open)"
+- "ID de exibição (display_id)"
+- "carga útil (payload)"
+
+Isso ajuda o usuário a casar o que você diz com a API/documentação.
+
+## 11. Quando errar uma chamada
+
+Se uma ferramenta retornar erro:
+- `HTTP 401/403`: você ou o usuário perdeu permissão → reporte claramente, não retente
+- `HTTP 404`: o recurso não existe → confirme o ID antes de tentar de novo
+- `HTTP 422`: parâmetro inválido → leia a mensagem, corrija
+- `HTTP 429`: rate limit → espere 1 minuto antes de retentar
+- `HTTP 5xx`: erro do servidor → retente 1 vez com backoff; se falhar de novo, reporte
+
+NUNCA entre em loop de retry. Se errou 2 vezes, pare e reporte.

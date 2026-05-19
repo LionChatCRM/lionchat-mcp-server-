@@ -1,14 +1,15 @@
 {
   "name": "@lionchat/mcp-server",
-  "version": "0.2.1",
-  "description": "MCP server for LionChat API — 547 tools for AI agents",
+  "version": "0.3.0",
+  "description": "MCP server for LionChat API — 547 tools + 4 resources + 4 prompts for AI agents",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
     "lionchat-mcp-server": "dist/index.js"
   },
   "scripts": {
-    "build": "tsc && chmod +x dist/index.js",
+    "build": "tsc && npm run copy-docs && chmod +x dist/index.js",
+    "copy-docs": "mkdir -p dist/docs/resources dist/docs/prompts && cp src/docs/instructions.md dist/docs/ && cp src/docs/resources/*.md dist/docs/resources/ && cp src/docs/prompts/*.json dist/docs/prompts/",
     "prepublishOnly": "npm run build",
     "start": "node dist/index.js",
     "dev": "tsc --watch",
