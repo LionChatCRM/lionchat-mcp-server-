@@ -1,7 +1,7 @@
 {
   "name": "@lionchat/mcp-server",
-  "version": "0.3.0",
-  "description": "MCP server for LionChat API — 547 tools + 4 resources + 4 prompts for AI agents",
+  "version": "0.3.1",
+  "description": "MCP server for LionChat API — 547 tools + 8 resources + 8 prompts for AI agents",
   "type": "module",
   "main": "dist/index.js",
   "bin": {

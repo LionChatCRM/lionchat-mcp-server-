@@ -1,0 +1,23 @@
+{
+  "name": "inactive_contacts",
+  "title": "Contatos Inativos pra Reativação",
+  "description": "Identifica contatos sem interação há um tempo determinado, com sugestões de abordagem pra reativação.",
+  "arguments": [
+    {
+      "name": "days_inactive",
+      "description": "Dias sem interação (padrão: 30)",
+      "required": false
+    },
+    {
+      "name": "min_past_conversations",
+      "description": "Mínimo de conversas anteriores pra considerar (padrão: 1)",
+      "required": false
+    },
+    {
+      "name": "exclude_labels",
+      "description": "Labels pra excluir, separadas por vírgula (ex: 'spam,bot')",
+      "required": false
+    }
+  ],
+  "template": "Identifique contatos da conta que estão inativos há {{days_inactive|30}} dias ou mais.\n\nCritérios:\n- Tiveram pelo menos {{min_past_conversations|1}} conversa(s) anteriormente (mostra que já são leads ativos, não desconhecidos)\n- Última conversa marcada como `resolved` ou sem mensagens novas há {{days_inactive|30}}+ dias\n- Excluir contatos com labels: {{exclude_labels|none}}\n\nPra cada contato encontrado:\n1. Nome, telefone/email\n2. Última conversa (data, motivo do contato anterior se possível inferir)\n3. Canal favorito de contato (WhatsApp, Email, etc)\n4. Sugestão de abordagem personalizada:\n   - Se foi cliente: \"como pode ter ido com X que você comprou?\"\n   - Se foi lead frio: \"vimos seu interesse em Y, ainda faz sentido?\"\n   - Se foi pós-venda: \"vamos renovar?\" / \"feedback?\"\n\nApresentar no formato:\n- Resumo: X contatos identificados\n- Top 10 mais relevantes (priorizar valor histórico, segmento alto, label 'cliente')\n- Sugestão de mensagem template pra reativação em massa (se o usuário quiser, podemos criar campanha)"
+}

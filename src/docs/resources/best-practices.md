@@ -1,0 +1,166 @@
+# Boas Práticas — Uso Eficiente do MCP
+
+Como usar o MCP do LionChat sem desperdiçar tokens, sem cair em rate limits, e com respostas precisas.
+
+## Princípio geral: liste resumido, leia detalhado quando precisar
+
+Errado: pegar TODAS conversas + TODAS mensagens de cada uma logo de cara.
+
+Certo:
+1. `conversations_list` com filtros e `page=1` (paginado) → vê IDs + última mensagem
+2. Identifica candidatas (5-10 conversas)
+3. `conversations_messages_list` SÓ para as relevantes
+
+Resultado: 10x menos tokens.
+
+## Use filtros sempre que possível
+
+A maioria dos endpoints aceita parâmetros pra filtrar antes de retornar:
+
+| Endpoint | Filtros úteis |
+|---|---|
+| `conversations_list` | `status` (open/resolved), `assignee_type`, `inbox_id`, `team_id`, `labels`, `q` (busca) |
+| `contacts_list` | `q` (nome/email/telefone), `include_contact_inboxes` |
+| `messages_search` | `q`, `conversation_id`, `before`, `after` |
+| `kanban_items_list` | `funnel_id`, `funnel_stage`, `assigned_agent_id` |
+| `reports_list_*` | `since`, `until`, `metric`, `type` |
+
+**Dica:** sempre filtre por período (`since`/`until`) em relatórios — sem isso pode trazer anos de histórico.
+
+## Paginação
+
+Endpoints listáveis paginam em geral 25 itens. Use `page` parameter:
+
+```
+page=1 → primeiros 25
+page=2 → próximos 25
+```
+
+Pra contar total, use `meta.total_count` (vem no response). Não tente "paginar até zerar" se já tem o total — pode ser milhões.
+
+## Cache local mental
+
+Quando ler dados que provavelmente não mudam na sessão:
+- Lista de inboxes
+- Lista de agentes
+- Lista de times
+- Custom attribute definitions
+- Funnels
+
+Faça UMA chamada e use a info por toda a conversa. NÃO refaça `agents_list` 10x.
+
+## Use endpoints específicos > endpoints genéricos
+
+Quando existir endpoint específico, prefira:
+
+| Errado | Certo |
+|---|---|
+| `reports_list` filtrando manualmente | `reports_list_2` (já é "conversations_metrics") |
+| `conversations_list` + filtro de unread no cliente | `conversations_list` com `assignee_type=me&status=open` |
+| `messages_list` percorrendo conversas | `conversations_messages_search` com `q=...` |
+
+## Economia em conversas com muitas mensagens
+
+Conversa com 200 mensagens? **Não baixe tudo**:
+
+1. `conversations_show` (1 chamada) → metadata + última mensagem
+2. Se precisa contexto: pegue só as últimas 20-30 mensagens com `before` ou `page`
+3. Pra análise completa, use `conversations_transcript` (formato condensado)
+
+## Operações em massa
+
+Pra atribuir labels, mover cards, etc em vários itens:
+- `kanban_bulk_bulk_actions` (cards Kanban)
+- `kanban_items_kanban_agents_create` em massa (passar array)
+- `automation_rules_*` (criar regras em vez de fazer manualmente)
+
+NÃO faça 50 PATCH requests individuais — bate rate limit.
+
+## Rate limiting
+
+LionChat tem rate limit por API token. Limites típicos:
+- ~500 req/min para read
+- ~100 req/min para write
+
+Se receber `429 Too Many Requests`:
+- Espere o `Retry-After` header
+- Reduza concorrência
+- Reavalie estratégia (provavelmente está fazendo loop ineficiente)
+
+## Quando NÃO usar IA pra escrever mensagens
+
+- Mensagens de cobrança / financeiras → use templates aprovados
+- Confirmação de venda → template + variáveis
+- Comunicação legal → revisão humana obrigatória
+
+IA é boa pra: triagem, classificação, resumo, sugestão de resposta, análise.
+
+## Variáveis de conta (account_variables)
+
+Pra dados que se repetem (slogans, endereços, horários):
+- `account_variables_create` UMA vez
+- Use em templates com `{{slogan}}`, `{{endereco}}`
+- Atualiza UMA vez, propaga pra todo lugar
+
+Nunca hard-code esses dados em respostas geradas.
+
+## Status codes a respeitar
+
+| Code | O que fazer |
+|---|---|
+| 200/201 | OK, processar resposta |
+| 204 | OK, sem corpo (típico de DELETE) |
+| 400 | Erro de input — leia mensagem e ajuste |
+| 401 | Token inválido/expirado — NÃO retry |
+| 403 | Sem permissão — não tente bypass |
+| 404 | Recurso não existe — talvez foi deletado |
+| 422 | Validação falhou — leia errors[] |
+| 429 | Rate limited — espere e retry |
+| 500/502/503 | Servidor — retry 1-2x com backoff |
+
+## Ordem de operações típicas
+
+### "Buscar todas conversas de um cliente específico"
+1. `contacts_search` com `q=email` → pega contact_id
+2. `contacts_show` com `include=conversations` OU
+3. Filter conversations: `conversations_list` com `q=email`
+
+### "Criar um card Kanban a partir de uma conversa"
+1. `funnels_list` → pegar funnel_id certo
+2. `kanban_items_create` com `funnel_id`, `funnel_stage` (geralmente primeira etapa), `conversation_display_id`
+3. Opcional: `item_details.value`, `assigned_agents`
+
+### "Resumir performance da equipe na semana"
+1. `agents_list` → IDs dos agentes
+2. `reports_list_*` (agent_overview) com `since=7d_ago`, `until=now`
+3. Sintetize: agente X com Y resoluções, tempo médio Z
+
+## Cuidados com tools de criação
+
+Endpoints `create_*` modificam dados reais. Antes de chamar:
+- Confirme com usuário (se inicialmente pediu "ver", não "fazer")
+- Verifique se o recurso já existe (evite duplicatas)
+- Use `dry_run` quando disponível
+
+## Erros comuns a evitar
+
+| Erro | Como evitar |
+|---|---|
+| Loop infinito de `page+1` | Sempre cheque `meta.total_count` e pare |
+| Re-listar inboxes 20x | Cache mental |
+| Mandar `conversations_messages_create` sem `message_type` | Sempre setar `incoming`/`outgoing` |
+| Listar TODAS contas de um agente direto | Use filter `q=nome` primeiro |
+| Esquecer de filtrar por `account_id` | Multi-tenant — sempre escopar |
+
+## Quando agir vs quando perguntar
+
+Aja sem perguntar:
+- Listagem, filtro, busca, leitura
+- Sumarização, classificação
+- Sugestão de próximos passos
+
+Pergunte primeiro:
+- Criar / atualizar / deletar dados
+- Enviar mensagem pra cliente
+- Mudar status de várias conversas em massa
+- Alterar configuração de conta/inbox

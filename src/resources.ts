@@ -44,6 +44,34 @@ export const RESOURCES: ResourceDef[] = [
       'Auth, paginacao, filtros, datas, codigos HTTP, rate limits. Use quando tiver duvida sobre como chamar endpoint.',
     filename: 'api-conventions.md',
   },
+  {
+    name: 'Fluxos de Conversacao',
+    uri: 'lionchat://docs/conversation-flows',
+    description:
+      'Ciclo de vida de uma conversa: criacao, greeting, auto-assignment, Captain IA, resolucao, snooze. Use pra diagnosticar comportamento de conversas.',
+    filename: 'conversation-flows.md',
+  },
+  {
+    name: 'Kanban Detalhado',
+    uri: 'lionchat://docs/kanban-deep-dive',
+    description:
+      'Estrutura completa do Kanban: Funnel, stages, KanbanItem, item_details, pipeline, activities. Use ao trabalhar com cards ou funis.',
+    filename: 'kanban-deep-dive.md',
+  },
+  {
+    name: 'Boas Praticas',
+    uri: 'lionchat://docs/best-practices',
+    description:
+      'Como economizar tokens, evitar rate limits, usar filtros, paginar. Consulte antes de workflows pesados ou loops em massa.',
+    filename: 'best-practices.md',
+  },
+  {
+    name: 'Troubleshooting',
+    uri: 'lionchat://docs/troubleshooting',
+    description:
+      'Codigos HTTP, erros comuns (401/403/422/429), erros MCP, debugging, quando reportar suporte. Use pra interpretar erros.',
+    filename: 'troubleshooting.md',
+  },
 ];
 
 function findDocsPath(filename: string): string | null {

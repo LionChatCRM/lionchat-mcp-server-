@@ -63,8 +63,8 @@ async function main() {
     console.error(`Base URL: ${config.baseUrl}`);
     console.error(`Account: ${config.accountId}`);
     console.error(`Tools registered: ${toolCount}`);
-    console.error(`Resources registered: 4 (glossary, data-model, reports-guide, api-conventions)`);
-    console.error(`Prompts registered: 4 (productivity_report, stuck_leads, weekly_recap, customer_health)`);
+    console.error(`Resources registered: 8 (glossary, data-model, reports-guide, api-conventions, conversation-flows, kanban-deep-dive, best-practices, troubleshooting)`);
+    console.error(`Prompts registered: 8 (productivity_report, stuck_leads, weekly_recap, customer_health, inactive_contacts, team_load_balance, quality_audit, whatsapp_template_usage)`);
     if (config.categories) {
       console.error(`Categories filter: ${config.categories.join(', ')}`);
     }
