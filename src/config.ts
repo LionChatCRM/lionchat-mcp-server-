@@ -7,6 +7,9 @@ export interface Config {
   baseUrl: string;
   categories: string[] | null; // null = all categories
   includePublicApi: boolean;
+  // AIDEV-NOTE: Versao do package, lida em index.ts a partir do package.json.
+  // Usada pelo User-Agent das requisicoes pro Rails detectar origem MCP no audit log.
+  version: string;
 }
 
 // AIDEV-NOTE: Parse CLI args from process.argv looking for --key=value and --flag patterns
@@ -80,5 +83,6 @@ export function loadConfig(): Config {
     categories: parseCategories(categoriesRaw),
     includePublicApi:
       includePublicApiRaw === 'true' || includePublicApiRaw === '1',
+    version: getCliArg('version-override') ?? process.env.LIONCHAT_MCP_VERSION ?? 'unknown',
   };
 }

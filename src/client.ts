@@ -190,9 +190,12 @@ export class LionChatClient {
     // AIDEV-NOTE: Build full URL (query params already embedded in path by tools.ts)
     const url = this.buildUrl(path);
 
-    // AIDEV-NOTE: Build headers — api_access_token on all requests
+    // AIDEV-NOTE: Build headers — api_access_token + User-Agent on all requests.
+    // User-Agent permite o Rails detectar a origem em AccessTokenAuthHelper#detect_mcp_audit_source
+    // e anotar o audit log via Current.audit_source.
     const headers: Record<string, string> = {
       api_access_token: this.config.apiToken,
+      'User-Agent': `@lionchat/mcp-server/${this.config.version}`,
     };
 
     const hasBody = body && ['POST', 'PATCH', 'PUT', 'DELETE'].includes(method.toUpperCase());

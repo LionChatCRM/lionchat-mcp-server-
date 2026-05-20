@@ -21,6 +21,9 @@ async function main() {
   try {
     // AIDEV-NOTE: Load configuration from env vars (LIONCHAT_BASE_URL, LIONCHAT_API_TOKEN, etc.)
     const config = loadConfig();
+    // Sobrescreve version do config com a version lida do package.json. AIDEV-NOTE:
+    // usado pelo client HTTP no User-Agent pra Rails detectar origem MCP no audit log.
+    config.version = VERSION;
 
     // AIDEV-NOTE: Warn if base URL is not HTTPS (token would be sent in cleartext)
     if (
@@ -44,6 +47,9 @@ async function main() {
           tools: {},
           resources: { subscribe: false, listChanged: false },
           prompts: { listChanged: false },
+          // AIDEV-NOTE: Autocomplete de argumentos de prompts via completion/complete.
+          // Handler em prompts.ts retorna sugestoes hardcoded pra args enum-like.
+          completions: {},
         },
       },
     );
